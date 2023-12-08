@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, ChangeEvent, useCallback } from "react";
-
+import useDebounce from "@/hooks/useDebounce";
 import {
   Badge,
   Flex,
@@ -24,15 +24,16 @@ enum Currency {
 }
 
 const ENDPOINT_URL = "https://api.frontendeval.com/fake/crypto";
+const DEBOUNCE_TIME = 500;
+const REFRESH_TIME = 10000;
 
-const formatCurrency = (value: number, currency: Currency): string => {
-  return value.toLocaleString("en-US", {
-    style: "currency",
-    currency: currency,
-  });
+const fetchPrice = async (currency: Currency): Promise<number> => {
+  const response = await fetch(`${ENDPOINT_URL}/${currency}`);
+  const { value } = await response.json();
+  return value;
 };
 
-const formatWUC = (value: number): string => {
+const formatTwoDecimals = (value: number): string => {
   return value.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -44,6 +45,7 @@ function Home() {
   const [amountChanged, setAmountChanged] = useState<number>(0);
   const [amount, setAmount] = useState<number>(0);
   const [coinValue, setCoinValue] = useState<number>(0);
+  const debouncedAmount = useDebounce<number>(amount, DEBOUNCE_TIME);
 
   const updateAmount = (value: string): void => {
     const parsedAmount = parseFloat(value) || 0;
@@ -56,32 +58,31 @@ function Home() {
     setCurrency(value);
   };
 
-  const fetchPrice = useCallback(
-    async (currency: Currency, track: boolean = false): Promise<void> => {
-      if (amount <= 0) {
-        return;
-      }
-      const response = await fetch(`${ENDPOINT_URL}/${currency}`);
-      const { value } = await response.json();
-      if (track) {
-        setAmountChanged(value - coinValue);
-      }
-      setCoinValue(value);
-    },
-    [amount, coinValue]
-  );
-
   useEffect(() => {
-    const priceInterval: ReturnType<typeof setInterval> = setInterval(() => {
-      fetchPrice(currency, true);
-    }, 10000);
+    const priceInterval: ReturnType<typeof setInterval> = setInterval(
+      async () => {
+        if (amount !== 0) {
+          const value = await fetchPrice(currency);
+          setAmountChanged(value - coinValue);
+          setCoinValue(value);
+        }
+      },
+      REFRESH_TIME
+    );
     return () => clearInterval(priceInterval);
-  }, [coinValue, currency, fetchPrice]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedAmount, coinValue, currency]);
 
   useEffect(() => {
-    fetchPrice(currency);
+    async function updateValues() {
+      if (amount !== 0) {
+        const value = await fetchPrice(currency);
+        setCoinValue(value);
+      }
+    }
+    updateValues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amount, currency]);
+  }, [debouncedAmount, currency]);
 
   return (
     <Flex
@@ -95,12 +96,11 @@ function Home() {
       </Heading>
       <form>
         <Flex direction="row" gap="4">
-          <TextFieldRoot aria-label="Amount to convert" data-1pignore>
+          <TextFieldRoot>
             <TextFieldSlot>{Currency[currency]}</TextFieldSlot>
             <TextFieldInput
               placeholder="Enter an amount"
-              type="number"
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: ChangeEvent<HTMLInputElement>): void =>
                 updateAmount(e.target.value)
               }
             />
@@ -118,7 +118,7 @@ function Home() {
         </Flex>
       </form>
       <Flex direction="row" mt="4" gap="2" aria-live="polite">
-        <span>{`${formatWUC(coinValue * amount)} WUC`}</span>
+        <span>{`${formatTwoDecimals(coinValue * debouncedAmount)} WUC`}</span>
         {amountChanged !== 0 && (
           <Badge
             color={amountChanged > 0 ? "green" : "red"}
@@ -126,7 +126,7 @@ function Home() {
             tabIndex={0}
           >
             {amountChanged > 0 ? <ThickArrowUpIcon /> : <ThickArrowDownIcon />}
-            {formatWUC(amount * amountChanged)}
+            {formatTwoDecimals(debouncedAmount * amountChanged)}
           </Badge>
         )}
       </Flex>
