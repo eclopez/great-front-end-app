@@ -32,6 +32,13 @@ const formatCurrency = (value: number, currency: Currency): string => {
   });
 };
 
+const formatWUC = (value: number): string => {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 function Home() {
   const [currency, setCurrency] = useState<Currency>("USD" as Currency);
   const [amountChanged, setAmountChanged] = useState<number>(0);
@@ -67,7 +74,7 @@ function Home() {
   useEffect(() => {
     const priceInterval: ReturnType<typeof setInterval> = setInterval(() => {
       fetchPrice(currency, true);
-    }, 3000);
+    }, 10000);
     return () => clearInterval(priceInterval);
   }, [coinValue, currency, fetchPrice]);
 
@@ -88,7 +95,7 @@ function Home() {
       </Heading>
       <form>
         <Flex direction="row" gap="4">
-          <TextFieldRoot>
+          <TextFieldRoot aria-label="Amount to convert" data-1pignore>
             <TextFieldSlot>{Currency[currency]}</TextFieldSlot>
             <TextFieldInput
               placeholder="Enter an amount"
@@ -99,7 +106,7 @@ function Home() {
             />
           </TextFieldRoot>
           <SelectRoot defaultValue={currency} onValueChange={updateCurrency}>
-            <SelectTrigger />
+            <SelectTrigger aria-label="Currency to convert" />
             <SelectContent>
               {Object.keys(Currency).map((c) => (
                 <SelectItem key={c} value={c}>
@@ -110,14 +117,16 @@ function Home() {
           </SelectRoot>
         </Flex>
       </form>
-      <Flex direction="row" mt="4" gap="2">
-        <span>
-          {formatCurrency(coinValue * amount, currency) || "0.00"} WUC
-        </span>
+      <Flex direction="row" mt="4" gap="2" aria-live="polite">
+        <span>{`${formatWUC(coinValue * amount)} WUC`}</span>
         {amountChanged !== 0 && (
-          <Badge color={amountChanged > 0 ? "green" : "red"} variant="surface">
+          <Badge
+            color={amountChanged > 0 ? "green" : "red"}
+            variant="surface"
+            tabIndex={0}
+          >
             {amountChanged > 0 ? <ThickArrowUpIcon /> : <ThickArrowDownIcon />}
-            {formatCurrency(amount * amountChanged, currency)}
+            {formatWUC(amount * amountChanged)}
           </Badge>
         )}
       </Flex>

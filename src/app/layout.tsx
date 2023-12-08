@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { Theme } from "@radix-ui/themes";
 import "@radix-ui/themes/styles.css";
 
+export const metadata: Metadata = {
+  title: "Erik Lopez&apos;s GreatFrontEnd Application - Crypto Converter",
+  description: "Erik Lopez&apos;s GreatFrontEnd Application - Crypto Converter",
+};
 interface RootLayoutProps {
   children: React.ReactNode;
 }
@@ -8,9 +13,6 @@ interface RootLayoutProps {
 function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="en">
-      <head>
-        <title>Erik Lopez&apos;s GreatFrontEnd Application Site</title>
-      </head>
       <body>
         <Theme appearance="dark" accentColor="violet" asChild>
           <main>{children}</main>
