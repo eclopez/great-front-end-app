@@ -40,6 +40,17 @@ const formatTwoDecimals = (value: number): string => {
   });
 };
 
+const currencyMask = (
+  e: ChangeEvent<HTMLInputElement>
+): ChangeEvent<HTMLInputElement> => {
+  let maskedValue = e.target.value;
+  maskedValue = maskedValue.replace(/\D/g, "");
+  maskedValue = maskedValue.replace(/(\d)(\d{2})$/, "$1.$2");
+  maskedValue = maskedValue.replace(/(?=(\d{3})+(\D))\B/g, ",");
+  e.target.value = maskedValue;
+  return e;
+};
+
 function Home() {
   const [currency, setCurrency] = useState<Currency>("USD" as Currency);
   const [amountChanged, setAmountChanged] = useState<number>(0);
@@ -47,8 +58,8 @@ function Home() {
   const [coinValue, setCoinValue] = useState<number>(0);
   const debouncedAmount = useDebounce<number>(amount, DEBOUNCE_TIME);
 
-  const updateAmount = (value: string): void => {
-    const parsedAmount = parseFloat(value) || 0;
+  const updateAmount = (e: ChangeEvent<HTMLInputElement>): void => {
+    const parsedAmount = parseFloat(e.target.value.replaceAll(",", "")) || 0;
     if (!isNaN(parsedAmount)) {
       setAmount(parsedAmount);
     }
@@ -101,7 +112,7 @@ function Home() {
             <TextFieldInput
               placeholder="Enter an amount"
               onChange={(e: ChangeEvent<HTMLInputElement>): void =>
-                updateAmount(e.target.value)
+                updateAmount(currencyMask(e))
               }
             />
           </TextFieldRoot>
