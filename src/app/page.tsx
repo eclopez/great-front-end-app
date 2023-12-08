@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, ChangeEvent, useCallback } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import useDebounce from "@/hooks/useDebounce";
 import {
   Badge,
